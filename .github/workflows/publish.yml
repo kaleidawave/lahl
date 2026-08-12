@@ -4,8 +4,6 @@ on: [push]
 
 jobs:
   check:
-    if: false
-
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +23,7 @@ jobs:
   publish-crates:
     needs: check
 
-    if: false # ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/main' }}
 
     permissions: write-all
 
