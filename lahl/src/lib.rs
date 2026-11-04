@@ -1,4 +1,5 @@
-#![doc = include_str!("../../README.md")]
+#![doc = include_str!("../README.md")]
+
 pub mod collections;
 pub mod extras;
 pub mod help;
