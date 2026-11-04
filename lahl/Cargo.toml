@@ -3,12 +3,12 @@ name = "lahl"
 description = "lightweight argument handling library"
 repository = "https://github.com/kaleidawave/lahl"
 license = "MIT"
-version = "0.0.3"
+version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 lahl-derive.path = "../lahl-derive"
-lahl-derive.version = "0.0.0"
+lahl-derive.version = "0.1.0"
 
 [lints]
 workspace = true

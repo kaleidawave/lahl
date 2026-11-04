@@ -4,14 +4,14 @@ version = 4
 
 [[package]]
 name = "lahl"
-version = "0.0.3"
+version = "0.1.0"
 dependencies = [
  "lahl-derive",
 ]
 
 [[package]]
 name = "lahl-derive"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "syraise",
