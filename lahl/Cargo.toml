@@ -1,0 +1,10 @@
+[package]
+name = "lahl"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lahl-derive.path = "../lahl-derive"
+
+[lints]
+workspace = true

@@ -1,0 +1,9 @@
+[workspace]
+resolver = "3"
+members = ["lahl", "lahl-derive"]
+
+metadata.version_sync = true
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"

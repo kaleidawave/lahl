@@ -1,0 +1,12 @@
+[package]
+name = "lahl-derive"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+proc-macro = true
+path = "macro.rs"
+
+[dependencies]
+proc-macro2 = "1.0.106"
+syraise = "0.1.0"
