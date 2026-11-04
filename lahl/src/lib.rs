@@ -27,7 +27,7 @@ pub struct Arguments {
 	source: ArgumentsSource,
 	holding: Option<String>,
 	/// When encountered an unknown value or `--help`. At the end if excess: print this as an unknown ?
-	location: Option<Parameter<'static>>,
+	pub location: Option<Parameter<'static>>,
 }
 
 pub enum ValueOrHelp {
@@ -90,7 +90,7 @@ impl Arguments {
 		}
 	}
 
-	pub fn key(&mut self) -> Option<ValueOrHelp> {
+	pub fn key<T: FromArgs>(&mut self) -> Option<ValueOrHelp> {
 		let value = self.next()?;
 		match value {
 			ValueOrHelp::Value(value) => {
@@ -103,7 +103,10 @@ impl Arguments {
 					Some(ValueOrHelp::Value(value))
 				}
 			}
-			ValueOrHelp::Help => Some(ValueOrHelp::Help),
+			ValueOrHelp::Help => {
+				self.location = Some(T::information());
+				Some(ValueOrHelp::Help)
+			}
 		}
 	}
 
@@ -271,22 +274,6 @@ pub struct Error {
 	pub location: Option<Parameter<'static>>,
 }
 
-// impl From<BaseError> for Error {
-// 	fn from(base: BaseError) -> Self {
-// 		Self { base, location: None }
-// 	}
-// }
-
-// impl Error {
-// 	pub fn add_help(self, description: Parameter<'static>) -> Self {
-// 		if self.description.is_none() {
-// 			Self { base: self.base, description: Some(description) }
-// 		} else {
-// 			self
-// 		}
-// 	}
-// }
-
 impl FromArgs for String {
 	fn information() -> Parameter<'static> {
 		Parameter::Leaf {
@@ -426,19 +413,15 @@ impl<T: std::str::FromStr> Parseable<T> {
 
 pub static EMPTY: &str = "";
 
-// // Little bit of a mess
-// pub fn consume<T: FromArgs>(on: &mut T, args: &mut Arguments) -> Result<(), BaseError> {
-// 	FromArgs::append(on, args)?;
-// 	while args.holding.is_some() {
-// 		FromArgs::append(on, args)?;
-// 	}
-// 	Ok(())
-// }
-
 /// checks for things ahead of time
 pub fn check(_parameters: Parameter<'_>) {}
 
 impl Error {
+	pub fn print_with_exit_code(self) -> std::process::ExitCode {
+		self.print();
+		std::process::ExitCode::FAILURE
+	}
+
 	pub fn print(self) {
 		match self.base {
 			BaseError::MissingValue => {
@@ -454,13 +437,14 @@ impl Error {
 				eprintln!("missing {missing:?}");
 			}
 			BaseError::Excess(excess) => {
-				eprintln!("unexpected {excess:?}");
+				eprintln!("unexpected {excess:?} (did not get passed)");
 			}
 			BaseError::Help => {
 				assert!(self.location.is_some(), "--help but no location");
 			}
 			// From `enum` etc
-			BaseError::Unknown(_) => {
+			BaseError::Unknown(arg) => {
+				eprintln!("unknown {arg:?}");
 				assert!(self.location.is_some(), "--help but no location");
 			}
 		}

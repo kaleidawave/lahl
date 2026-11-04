@@ -1,67 +1,39 @@
 # LAHL - lightweight argument handling library
 
+[![crates.io badge](https://img.shields.io/crates/v/lahl)](https://crates.io/crates/lahl)
+[![docs.rs badge](https://img.shields.io/docsrs/lahl)](https://docs.rs/syraise/latest/lahl/)
+[![compiler-club](https://f005.backblazeb2.com/file/6948446f806c172a098591088e0715b8258b380b/cc-discord-badge.png)](https://kaleidawave-public-pages.val.run/r/cc-discord)
+
 Features
 
 - derive macro
-- depends on syraise (no syn)
+- depends on [syraise](https://crates.io/crates/syraise) (no syn)
+
+## Benefits
+
+- Using traits makes this semantic, not syntactic. 
+	- Type aliases and generics work
+	- No syntatic analysis of `bool` and `Option`
+- Low overhead?
+
+## Problems
+
+- Booleans do not eat arguments
+	- `struct X(bool)` has to accept no arguments, will always be `X(true)`
+- [`--help` is *currently* a mess for large items](https://github.com/kaleidawave/lahl/issues/2)
+- [no completition generation at the moment](https://github.com/kaleidawave/lahl/issues/3)
+
+## Comparison
+
+|crate|`clap`|`argh`|`lahl`|
+|---|---|---|---|
+|derive API|✓|✓|✓|c
+|`#[default]`|✓|✓|❌|
+|dependencies|syn|syn|syraise|
+|doc-comment|✓|✓|✓|
+|differentiation between <br>command or subcommands|✓|✓|❌|
 
 ## Derive
-
-### Enums
-
-Values from variant name. Transforms variant name to kebab case
-
-```rust
-use lahl::FromArgs;
-
-#[derive(FromArgs, PartialEq, Debug)]
-enum Command {
-	List,
-	ChangeDirectory,
-}
-
-let result = Command::from_vec(vec!["list"]);
-assert_eq!(result, Ok(Command::List));
-let result = Command::from_vec(vec!["change-directory"]);
-assert_eq!(result, Ok(Command::ChangeDirectory));
-```
-
-### Errors
-
-#### Missing
-
-```rust
-use lahl::FromArgs;
-
-#[derive(FromArgs, PartialEq, Debug)]
-enum Command {
-	List,
-	ChangeDirectory,
-}
-
-let result = Command::from_vec(vec!["missing"]);
-assert!(result.is_err());
-let result = Command::from_vec(vec![]);
-assert!(result.is_err());
-```
-
-#### Duplicate
-
-```rust
-use lahl::FromArgs;
-
-#[derive(FromArgs, PartialEq, Debug)]
-struct Command {
-	flag: Option<String>
-}
-
-let result = Command::from_vec(vec![]);
-assert!(result.is_ok());
-let result = Command::from_vec(vec!["--flag", "abc"]);
-assert!(result.is_ok());
-let result = Command::from_vec(vec!["--flag", "abc", "--flag", "abc"]);
-assert!(result.is_err());
-```
 
 ### Structures
 
@@ -107,6 +79,26 @@ let result = NamedFields::from_vec(vec!["--b", "67", "--a", "hi"]);
 assert_eq!(result, Ok(NamedFields { a: "hi".to_owned(), b: 67 }));
 ```
 
+#### Enums
+
+Values from variant name. Transforms variant name to kebab case
+
+```rust
+use lahl::FromArgs;
+
+#[derive(FromArgs, PartialEq, Debug)]
+enum Command {
+	List,
+	ChangeDirectory,
+}
+
+let result = Command::from_vec(vec!["list"]);
+assert_eq!(result, Ok(Command::List));
+
+let result = Command::from_vec(vec!["change-directory"]);
+assert_eq!(result, Ok(Command::ChangeDirectory));
+```
+
 #### Enum variant with named variant
 
 ```rust
@@ -144,13 +136,19 @@ struct NamedWithOptionalFields {
 }
 
 let result = NamedWithOptionalFields::from_vec(vec![]);
-assert_eq!(result, Ok(NamedWithOptionalFields { optional_value: None, optional_flag: false }));
+assert_eq!(result, Ok(NamedWithOptionalFields { 
+	optional_value: None, optional_flag: false 
+}));
 
 let result = NamedWithOptionalFields::from_vec(vec!["--optional-value", "hi"]);
-assert_eq!(result, Ok(NamedWithOptionalFields { optional_value: Some("hi".into()), optional_flag: false }));
+assert_eq!(result, Ok(NamedWithOptionalFields { 
+	optional_value: Some("hi".into()), optional_flag: false 
+}));
 
 let result = NamedWithOptionalFields::from_vec(vec!["--optional-flag"]);
-assert_eq!(result, Ok(NamedWithOptionalFields { optional_value: None, optional_flag: true }));
+assert_eq!(result, Ok(NamedWithOptionalFields { 
+	optional_value: None, optional_flag: true 
+}));
 ```
 
 #### Nesting
@@ -212,7 +210,50 @@ struct NamedWithOptionalFields {
 }
 
 let result = NamedWithOptionalFields::from_vec(vec!["--optional-value=hi"]);
-assert_eq!(result, Ok(NamedWithOptionalFields { optional_value: Some("hi".into()), optional_flag: false }));
+
+assert_eq!(result, Ok(NamedWithOptionalFields { 
+	optional_value: Some("hi".into()), optional_flag: false 
+}));
+```
+
+### Errors
+
+#### Missing
+
+```rust
+use lahl::FromArgs;
+
+#[derive(FromArgs, PartialEq, Debug)]
+enum Command {
+	List,
+	ChangeDirectory,
+}
+
+let result = Command::from_vec(vec!["missing"]);
+assert!(result.is_err());
+
+let result = Command::from_vec(vec![]);
+assert!(result.is_err());
+```
+
+#### Duplicate
+
+```rust
+use lahl::FromArgs;
+
+#[derive(FromArgs, PartialEq, Debug)]
+struct Command {
+	flag: Option<String>
+}
+
+let result = Command::from_vec(vec![]);
+assert!(result.is_ok());
+
+let result = Command::from_vec(vec!["--flag", "abc"]);
+assert!(result.is_ok());
+
+let result = Command::from_vec(vec!["--flag", "abc", "--flag", "abc"]);
+assert!(result.is_err());
 ```
 
 ### Attributes
@@ -252,6 +293,7 @@ enum WithFallthrough {
 
 let result = WithFallthrough::from_vec(vec!["main"]);
 assert_eq!(result, Ok(WithFallthrough::Main));
+
 let result = WithFallthrough::from_vec(vec![]);
 assert_eq!(result, Ok(WithFallthrough::Else));
 ```
@@ -349,7 +391,7 @@ struct Options {
 	options: lahl::Bucket
 }
 
-let result = Options::from_vec(vec!["--options", "a", "--options", "b", "--options", "c"]);
+let result = Options::from_vec(vec!["--options", "a", "b", "c"]);
 assert_eq!(result, Ok(Options {
 	options: lahl::collections::Collection(
 		vec!["a".to_owned(), "b".to_owned(), "c".to_owned()],
@@ -374,10 +416,6 @@ let result = Command::from_vec(vec!["--value", "abc", "--value", "123"]);
 assert_eq!(result.unwrap().value.0, vec!["abc".to_owned(), "123".to_owned()]);
 ```
 
-#### Paths?
-
-> TODO
-
 #### Comma-seperated
 
 ```rust
@@ -398,8 +436,6 @@ assert_eq!(
 > Used in `cargo`
 
 ### Collect all
-
-> TODO what about Bucket?
 
 ```rust
 use lahl::FromArgs;
@@ -476,12 +512,13 @@ assert_eq!(result, Ok(X::B));
 
 let result = X::from_vec(vec!["c"]);
 assert_eq!(result, Ok(X::A));
-
 ```
 
 ### Types
 
 #### `()` type
+
+> Mainly from generics
 
 ```rust
 use lahl::FromArgs;
@@ -524,6 +561,22 @@ let result = X::from_vec(vec!["--a", "aaa.0.0.1"]);
 assert!(result.is_err());
 ```
 
+#### `PathBuf`
+
+```rust
+use lahl::FromArgs;
+
+#[derive(FromArgs, Debug, PartialEq)]
+struct X {
+	a: std::path::PathBuf,
+}
+
+let result = X::from_vec(vec!["--a", "src/main.rs"]);
+assert_eq!(result, Ok(X {
+	a: std::path::PathBuf::from("src/main.rs"),
+}));
+```
+
 #### More
 
 #### `r#` keywords
@@ -539,53 +592,3 @@ struct X {
 let result = X::from_vec(vec!["--loop"]);
 assert_eq!(result, Ok(X { r#loop: true, }));
 ```
-
-### Generics
-
-> TOOD want field detection in syraise
-
-```rust
-// use lahl::{FromArgs, Bucket};
-
-// #[derive(FromArgs, Debug, PartialEq)]
-// struct X<T: FromArgs> {
-// 	other: Option<T>
-// }
-
-// let result = X::<String>::from_vec(vec!["--other", "hi"]);
-// assert_eq!(result, Ok(X {
-// 	other: Some("hi".to_owned())
-// }));
-
-// let result = X::<Bucket>::from_vec(vec!["--other", "hi", "test"]);
-// assert_eq!(result, Ok(X {
-// 	other: Some(Bucket(vec!["hi".to_owned(), "test".to_owned()]))
-// }));
-```
-
-## Benefits
-
-- Using traits makes this semantic, not syntactic. 
-	- Type aliases and generics work
-	- No syntatic analysis of `bool` and `Option`
-- Low overhead?
-
-## Problems
-
-- Booleans do not eat arguments
-	- `struct X(bool)` has to accept no arguments, will always be `X(true)`
-
-## Comparison
-
-Similar
-
-- Clap and argh: derive API
-- Clap and argh: uses doc-comments (`///`) for help/about
-
-Different
-
-- Everything `FromArg`, no differentiation between command or subcommands
-- No `default` (atm)
-- All short and long
-- Uses syraise library rather than syn
-	- TODO compilation perf + disk size

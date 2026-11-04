@@ -6,7 +6,6 @@ use syraise::{Fields, Item, Publicity, emit::compile_error};
 
 #[proc_macro_derive(FromArgs, attributes(lahl))]
 pub fn derive_from_args(input: TokenStream) -> TokenStream {
-	// dbg!(input.to_string());
 	let input = syraise::parse_item(input.into()).unwrap();
 
 	match input {
@@ -90,10 +89,15 @@ pub fn derive_from_args(input: TokenStream) -> TokenStream {
 			let rest_case = if seen_fall_through {
 				String::new()
 			} else {
-				// TODO MissingValue should return the options? or set current
-				format!(
-					"Some(arg) => Err(::lahl::BaseError::Unknown(arg.to_owned())),
-					None => Err(::lahl::BaseError::MissingValue)"
+				String::from(
+					"Some(arg) => {
+					args.location = Some(<Self as ::lahl::FromArgs>::information());
+					Err(::lahl::BaseError::Unknown(arg.to_owned()))
+				}
+				None => {
+					args.location = Some(<Self as ::lahl::FromArgs>::information());
+					Err(::lahl::BaseError::MissingValue)
+				}",
 				)
 			};
 
@@ -107,7 +111,10 @@ pub fn derive_from_args(input: TokenStream) -> TokenStream {
 					fn from_args_instep(args: &mut ::lahl::Arguments) -> Result<Self, ::lahl::BaseError> {{
 						let arg = match args.next() {{
 							Some(::lahl::ValueOrHelp::Value(arg)) => Some(arg),
-							Some(::lahl::ValueOrHelp::Help) => {{ return Err(::lahl::BaseError::Help); }},
+							Some(::lahl::ValueOrHelp::Help) => {{
+								args.location = Some(<Self as ::lahl::FromArgs>::information());
+								return Err(::lahl::BaseError::Help);
+							}},
 							None => None
 						}};
 						match arg.as_deref() {{
@@ -127,6 +134,7 @@ pub fn derive_from_args(input: TokenStream) -> TokenStream {
 			let mut outside = String::new();
 			let FieldsOut { information, parse_logic } =
 				FieldsOut::new(&r#struct.fields, &constructor, &mut outside);
+
 			let mut out = format!(
 				"impl ::lahl::FromArgs for {constructor_base} {{
 					fn information() -> ::lahl::Parameter<'static> {{
@@ -292,7 +300,9 @@ impl FieldsOut {
 						let name = match constructor {
 							Constructor::Variant { .. } => "None".to_owned(),
 							// TODO description from constructor
-							Constructor::Struct(_, name) => format!("Some(::lahl::NameDescription {{ name: \"{name}\", description: \"\" }})"),
+							Constructor::Struct(_, name) => format!(
+								"Some(::lahl::NameDescription {{ name: \"{name}\", description: \"\" }})"
+							),
 						};
 						format!(
 							"::lahl::Parameter::Group {{
@@ -351,14 +361,17 @@ impl FieldsOut {
 						}";
 						let consumer = if let Some(field) = unknown_or_after_dash_dash_field_name {
 							// `::lahl::collect(&mut partial.{field}, args); break;`
-							format!("if let \"--\" = key.as_str() {{
+							format!(
+								"if let \"--\" = key.as_str() {{
 								::lahl::FromArgs::append(&mut partial.{field}, args)?;
 								continue;
-							}}")
+							}}"
+							)
 						} else {
 							String::new()
 						};
-						let set_partial = "let result = ::lahl::Partial::set(&mut partial, &key, args);";
+						let set_partial =
+							"let result = ::lahl::Partial::set(&mut partial, &key, args);";
 						let handle_result = "match result {
 							Ok(()) => {}
 							Err(::lahl::PartialSetError::Unknown(name)) => { args.reject(name); break; }
@@ -366,7 +379,7 @@ impl FieldsOut {
 						}";
 						let _ = writeln!(
 							&mut inner,
-							"while let Some(key) = args.key() {{
+							"while let Some(key) = args.key::<Self>() {{
 								{extract_key};
 								{consumer}
 								{set_partial}
@@ -406,7 +419,9 @@ impl FieldsOut {
 						let name = match constructor {
 							Constructor::Variant { .. } => "None".to_owned(),
 							// TODO description from constructor
-							Constructor::Struct(_, name) => format!("Some(::lahl::NameDescription {{ name: \"{name}\", description: \"\" }})"),
+							Constructor::Struct(_, name) => format!(
+								"Some(::lahl::NameDescription {{ name: \"{name}\", description: \"\" }})"
+							),
 						};
 						format!(
 							"::lahl::Parameter::Group {{

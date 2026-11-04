@@ -28,8 +28,9 @@ dependencies = [
 
 [[package]]
 name = "syraise"
-version = "0.5.0"
-source = "git+https://github.com/kaleidawave/syn-helpers?rev=7a0d6afb60dca63543be6d8f5c8fe5d8f34df0b1#7a0d6afb60dca63543be6d8f5c8fe5d8f34df0b1"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "240e19f2723e275fabeaacaa2cdc972ff9c0351a46a319c2e830e9c277880fed"
 dependencies = [
  "proc-macro2",
 ]

@@ -9,7 +9,4 @@ path = "macro.rs"
 
 [dependencies]
 proc-macro2 = "1.0.106"
-syraise.version = "0.5.0"
-# syraise.path = "../../syraise"
-syraise.git = "https://github.com/kaleidawave/syn-helpers"
-syraise.rev = "7a0d6afb60dca63543be6d8f5c8fe5d8f34df0b1"
+syraise = "0.1.0"
